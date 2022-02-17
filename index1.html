@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--Reference: Github user samrknight12: https://github.com/samrknight12/project2-->
+<head>
+    <title>Main Page</title>
+    <h1>Welcome!</h1>
+    <!--Getting all libraries, stylesheets, etc. needed-->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--  jQuery -->
+    <script type="text/javascript" src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+          integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+          crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+            integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+            crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+    <style>
+        #map {
+            position: relative;
+            top: 80px;
+            height: 500px;
+            width: 750px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #searchbox {
+        }
+
+        body {
+            background-image: url('backg.jpg');
+        }
+    </style>
+</head>
+<body>
+    <!--Creating the search box-->
+    <div class="searchbox">
+        <h2> Select the date range from the widget below to find permit(s) in Calgary:</h2>
+        <!--Creating the form that retrives the from and to dates-->
+        <form onsubmit="getPermitsforDate(); return false;">
+            <label> Permits from:</label>
+            <input type="date" id="From_date">
+            <label> to:</label>
+            <input type="date" id="To_date">
+            <input class="button" type="submit" value="Find Permit(s)">
+            <button onclick="window.location.reload();">Refresh Map</button>
+        </form>
+
+    </div>
+    <!--Putting map into a division map-->
+    <div id="map">
+
+    </div>
+    <script>
+        //Initializing the map and setting its view to chosen geographical coordinates
+        var map = L.map('map').setView([51.0447, -114.0719], 11);
+        //Get tile layer link from cloud.maptiler
+        L.tileLayer('https://api.maptiler.com/maps/osm-standard/{z}/{x}/{y}.jpg?key=wAlT1SgsokY1oXiOq5Ee', {
+            attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
+        }).addTo(map);
+        //api url
+        let calgprops = 'https://data.calgary.ca/resource/c2es-76ed.geojson?';
+        //This function is called each time the "Find Permit(s)" button in the form above is clicked. 
+        async function getPermitsforDate() {
+            //Using the dates to get the url needed to refresh the map
+            let from = document.querySelector('#From_date').value;
+            let to = document.querySelector('#To_date').value;
+            //let user_output_url = "https://data.calgary.ca/resource/c2es-76ed.geojson?$where=issueddate > '" + from + "' and issueddate < '" + to + "'";
+            let user_output_url = calgprops + '$where=issueddate > ' + '\'' + from + '\'' + ' and issueddate < ' + '\'' + to + '\'';
+            //get api
+            const data = await fetch(user_output_url);
+            //convert to json
+            let data_json = await data.json();
+            //getting all points for the query
+            var pts = L.markerClusterGroup();
+            //Attaching the  required information to each point
+            const Geomark = L.geoJSON(data_json, {
+                onEachFeature: function (feature, layer) {
+                    var displayed_info = 'Date Issued: ' + feature.properties.issueddate + '<br></br>' + 'Work Class Group: ' + feature.properties.workclassgroup + '<br></br>' + 'Contractor Name: ' + feature.properties.contractorname + '<br></br>' + 'Community Name: ' + feature.properties.communityname + '<br></br>' + 'Original Address: ' + feature.properties.originaladdress;
+                    layer.bindPopup(displayed_info)
+                },
+            });
+            //Adding the descriptions to all the points in range
+            pts.addLayer(Geomark);
+            //adding all points to the map
+            map.addLayer(pts);
+
+        }
+
+    </script>
+</body>
+</html>
